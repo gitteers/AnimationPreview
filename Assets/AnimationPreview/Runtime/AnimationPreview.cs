@@ -2,7 +2,7 @@
 using Unity.Collections;
 using UnityEngine;
 
-namespace DeveloperTools.AnimationPreview
+namespace Rowlan.AnimationPreview
 {
     /// <summary>
     /// Preview animations of an Animator inside the Unity Editor

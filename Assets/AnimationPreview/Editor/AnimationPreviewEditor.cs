@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace DeveloperTools.AnimationPreview
+namespace Rowlan.AnimationPreview
 {
     /// <summary>
     /// Animation preview editor which allows you to select clips of an Animator and play them inside the Unity Editor.
