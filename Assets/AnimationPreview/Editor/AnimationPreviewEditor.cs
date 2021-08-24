@@ -55,7 +55,7 @@ namespace Rowlan.AnimationPreview
             EditorGUILayout.HelpBox( "Play animator clips inside the Unity editor.\nPress Play or the clip button to play the selected animation.\nPress Stop to stop continuous playing.", MessageType.Info);
             
             // data
-            EditorGUILayout.BeginVertical( "");
+            EditorGUILayout.BeginVertical();
             {
                 EditorGUILayout.LabelField("Clip Data", GUIStyles.BoxTitleStyle);
 
@@ -127,7 +127,7 @@ namespace Rowlan.AnimationPreview
             EditorGUILayout.EndVertical();
 
             // clip list
-            GUILayout.BeginVertical("");
+            EditorGUILayout.BeginVertical();
             {
                 EditorGUILayout.LabelField("Clip List", GUIStyles.BoxTitleStyle);
 
