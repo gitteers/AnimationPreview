@@ -36,6 +36,11 @@ namespace Rowlan.AnimationPreview
                 editorTarget.animator = editorTarget.GetComponent<Animator>();
             }
 
+            if( editorTarget.animator.runtimeAnimatorController == null)
+            {
+                Debug.LogWarning( $"Runtime animator controller not found for animator {editorTarget.animator.name}");
+            }
+
             UpdateClipName();
         }
 
@@ -356,7 +361,7 @@ namespace Rowlan.AnimationPreview
         #region Logging
         private void LogClips()
         {
-            if (!editorTarget.animator)
+            if (!editorTarget.animator || !editorTarget.animator.runtimeAnimatorController)
                 return;
 
             AnimationClip[] clips = editorTarget.animator.runtimeAnimatorController.animationClips;
