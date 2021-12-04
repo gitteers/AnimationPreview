@@ -1,4 +1,5 @@
 ﻿using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 namespace Rowlan.AnimationPreview
@@ -17,6 +18,7 @@ namespace Rowlan.AnimationPreview
         SerializedProperty clipIndex;
         SerializedProperty clipName;
         SerializedProperty animator;
+        SerializedProperty controller;
 
         private AnimationClip previewClip;
         private bool isPlaying = false;
@@ -29,14 +31,15 @@ namespace Rowlan.AnimationPreview
             clipIndex = serializedObject.FindProperty("clipIndex");
             clipName = serializedObject.FindProperty("clipName");
             animator = serializedObject.FindProperty("animator");
+            controller = serializedObject.FindProperty("controller");
 
             // try to get the animator from the gameobject if none is specified
-            if( !editorTarget.animator)
+            if ( !editorTarget.animator)
             {
                 editorTarget.animator = editorTarget.GetComponent<Animator>();
             }
             
-            if( editorTarget.animator && !editorTarget.animator.runtimeAnimatorController)
+            if( editorTarget.animator && !GetController())
             {
                 Debug.LogWarning( $"Runtime animator controller not found for animator {editorTarget.animator.name}");
             }
@@ -67,11 +70,16 @@ namespace Rowlan.AnimationPreview
                 EditorGUI.BeginChangeCheck();
                 {
                     bool hasAnimator = editorTarget.animator != null;
-                    bool hasAnimatorController = editorTarget.animator != null && editorTarget.animator.runtimeAnimatorController != null;
+                    bool hasAnimatorController = editorTarget.animator != null && GetController() != null;
 
                     GUI.backgroundColor = hasAnimator && hasAnimatorController ? GUIStyles.DefaultBackgroundColor : GUIStyles.ErrorBackgroundColor;
                     {
                         EditorGUILayout.PropertyField(animator);
+
+                        // visualize the controller
+                        GUI.enabled = false;
+                        EditorGUILayout.PropertyField(controller);
+                        GUI.enabled = true;
 
                         if (!hasAnimator || !hasAnimatorController)
                         {
@@ -93,6 +101,9 @@ namespace Rowlan.AnimationPreview
                 if (EditorGUI.EndChangeCheck())
                 {
                     animatorChanged = true;
+
+                    // update the controller
+                    editorTarget.controller = editorTarget.animator.runtimeAnimatorController;
                 }
 
                 GUI.enabled = false;
@@ -151,9 +162,9 @@ namespace Rowlan.AnimationPreview
             {
                 EditorGUILayout.LabelField("Clip List", GUIStyles.BoxTitleStyle);
 
-                if (editorTarget.animator && editorTarget.animator.runtimeAnimatorController)
+                if (editorTarget.animator && GetController())
                 {
-                    AnimationClip[] clips = editorTarget.animator.runtimeAnimatorController.animationClips;
+                    AnimationClip[] clips = GetController().animationClips;
                     for (int i = 0; i < clips.Length; i++)
                     {
                         AnimationClip clip = clips[i];
@@ -209,7 +220,7 @@ namespace Rowlan.AnimationPreview
 
                 // reset the 
                 // set index to either -1 or the first index depending on the number of animations
-                editorTarget.clipIndex = editorTarget.animator == null || editorTarget.animator.runtimeAnimatorController == null || editorTarget.animator.runtimeAnimatorController.animationClips.Length == 0 ? -1 : 0;
+                editorTarget.clipIndex = editorTarget.animator == null || GetController() == null || GetController().animationClips.Length == 0 ? -1 : 0;
 
                 UpdateClipName();
 
@@ -217,6 +228,19 @@ namespace Rowlan.AnimationPreview
 
             }
         }
+
+        /// <summary>
+        /// Wrapper method to get the controller from an animator without throwing an exception if the animator is null
+        /// </summary>
+        /// <returns></returns>
+        private RuntimeAnimatorController GetController()
+        {
+            if (editorTarget.animator == null)
+                return null;
+
+            return editorTarget.animator.runtimeAnimatorController;
+        }
+
         #endregion Inspector
 
         #region Clip Navigation
@@ -281,7 +305,7 @@ namespace Rowlan.AnimationPreview
             if (!editorTarget.animator)
                 return -1;
 
-            int clipCount = editorTarget.animator.runtimeAnimatorController.animationClips.Length;
+            int clipCount = GetController().animationClips.Length;
 
             // check if there are clips at all
             if (clipCount == 0)
@@ -314,7 +338,10 @@ namespace Rowlan.AnimationPreview
 
         private AnimationClip GetClip( int clipIndex)
         {
-            AnimationClip[] clips = editorTarget.animator.runtimeAnimatorController.animationClips;
+            if (!GetController())
+                return null;
+
+            AnimationClip[] clips = GetController().animationClips;
 
             if (clipIndex >= clips.Length)
                 return null;
@@ -376,10 +403,10 @@ namespace Rowlan.AnimationPreview
         #region Logging
         private void LogClips()
         {
-            if (!editorTarget.animator || !editorTarget.animator.runtimeAnimatorController)
+            if (!editorTarget.animator || !GetController())
                 return;
 
-            AnimationClip[] clips = editorTarget.animator.runtimeAnimatorController.animationClips;
+            AnimationClip[] clips = GetController().animationClips;
 
             string text = "Clips of " + editorTarget.animator.name + ": " + clips.Length + "\n";
 
