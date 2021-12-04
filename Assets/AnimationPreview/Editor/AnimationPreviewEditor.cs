@@ -66,9 +66,15 @@ namespace Rowlan.AnimationPreview
 
                 EditorGUI.BeginChangeCheck();
                 {
-                    GUI.backgroundColor = editorTarget.animator == null ? GUIStyles.ErrorBackgroundColor : GUIStyles.DefaultBackgroundColor;
+                    bool hasAnimatorAndController = editorTarget.animator != null && editorTarget.animator.runtimeAnimatorController != null;
+                    GUI.backgroundColor = hasAnimatorAndController ? GUIStyles.DefaultBackgroundColor : GUIStyles.ErrorBackgroundColor;
                     {
                         EditorGUILayout.PropertyField(animator);
+
+                        if (!hasAnimatorAndController)
+                        {
+                            EditorGUILayout.HelpBox("The animator must have a controller. Use a gameobject with an attached Animator and Controller.", MessageType.Error);
+                        }
 
                     }
                     GUI.backgroundColor = GUIStyles.DefaultBackgroundColor;
