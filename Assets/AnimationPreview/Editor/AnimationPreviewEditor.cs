@@ -31,12 +31,12 @@ namespace Rowlan.AnimationPreview
             animator = serializedObject.FindProperty("animator");
 
             // try to get the animator from the gameobject if none is specified
-            if ( !editorTarget.animator)
+            if( !editorTarget.animator)
             {
                 editorTarget.animator = editorTarget.GetComponent<Animator>();
             }
-
-            if( editorTarget.animator.runtimeAnimatorController == null)
+            
+            if( editorTarget.animator && !editorTarget.animator.runtimeAnimatorController)
             {
                 Debug.LogWarning( $"Runtime animator controller not found for animator {editorTarget.animator.name}");
             }
@@ -66,18 +66,27 @@ namespace Rowlan.AnimationPreview
 
                 EditorGUI.BeginChangeCheck();
                 {
-                    bool hasAnimatorAndController = editorTarget.animator != null && editorTarget.animator.runtimeAnimatorController != null;
-                    GUI.backgroundColor = hasAnimatorAndController ? GUIStyles.DefaultBackgroundColor : GUIStyles.ErrorBackgroundColor;
+                    bool hasAnimator = editorTarget.animator != null;
+                    bool hasAnimatorController = editorTarget.animator != null && editorTarget.animator.runtimeAnimatorController != null;
+
+                    GUI.backgroundColor = hasAnimator && hasAnimatorController ? GUIStyles.DefaultBackgroundColor : GUIStyles.ErrorBackgroundColor;
                     {
                         EditorGUILayout.PropertyField(animator);
 
-                        if (!hasAnimatorAndController)
+                        if (!hasAnimator || !hasAnimatorController)
                         {
                             EditorGUILayout.HelpBox("The animator must have a controller. Use a gameobject with an attached Animator and Controller.", MessageType.Error);
                         }
 
                     }
                     GUI.backgroundColor = GUIStyles.DefaultBackgroundColor;
+
+
+                    if (!hasAnimatorController)
+                    {
+                        EditorGUILayout.HelpBox("Quick solution to get a preview of all animations:\n1. Create > Animator Controller\n2. Drag all animations into the controller\n3. Add controller to your animator ", MessageType.Info);
+                    }
+
                 }
 
                 // stop clip in case the animator changes
