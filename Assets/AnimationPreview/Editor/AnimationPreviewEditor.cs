@@ -103,7 +103,7 @@ namespace Rowlan.AnimationPreview
                     animatorChanged = true;
 
                     // update the controller
-                    editorTarget.controller = editorTarget.animator.runtimeAnimatorController;
+                    editorTarget.controller = GetController();
                 }
 
                 GUI.enabled = false;
@@ -370,6 +370,9 @@ namespace Rowlan.AnimationPreview
         void DoPreview()
         {
             if (!previewClip)
+                return;
+
+            if (!editorTarget.animator)
                 return;
 
             previewClip.SampleAnimation(editorTarget.gameObject, Time.deltaTime);
