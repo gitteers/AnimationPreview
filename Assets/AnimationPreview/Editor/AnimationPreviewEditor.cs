@@ -61,8 +61,12 @@ namespace Rowlan.AnimationPreview
             bool animatorChanged = false;
 
             // help
-            EditorGUILayout.HelpBox( "Play animator clips inside the Unity editor.\nPress Play or the clip button to play the selected animation.\nPress Stop to stop continuous playing.", MessageType.Info);
-            
+            EditorGUILayout.HelpBox( 
+                "Play animator clips inside the Unity editor. Press Play or the clip button to play the selected animation. Press Stop to stop continuous playing."
+                + "\n\n"
+                + "Setup: Create an animator controller, drag animations into the controller, assign the controller to an animator of a gameobject and drag the gameobject into the Animator slot."
+                , MessageType.Info);
+
             // data
             EditorGUILayout.BeginVertical();
             {
