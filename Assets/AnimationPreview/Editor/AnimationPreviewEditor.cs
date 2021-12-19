@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System;
+using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
@@ -34,12 +35,12 @@ namespace Rowlan.AnimationPreview
             controller = serializedObject.FindProperty("controller");
 
             // try to get the animator from the gameobject if none is specified
-            if ( !editorTarget.animator)
+            if ( !HasAnimator())
             {
                 editorTarget.animator = editorTarget.GetComponent<Animator>();
             }
             
-            if( editorTarget.animator && !GetController())
+            if( HasAnimator() && !HasAnimatorController())
             {
                 Debug.LogWarning( $"Runtime animator controller not found for animator {editorTarget.animator.name}");
             }
@@ -69,10 +70,7 @@ namespace Rowlan.AnimationPreview
 
                 EditorGUI.BeginChangeCheck();
                 {
-                    bool hasAnimator = editorTarget.animator != null;
-                    bool hasAnimatorController = editorTarget.animator != null && GetController() != null;
-
-                    GUI.backgroundColor = hasAnimator && hasAnimatorController ? GUIStyles.DefaultBackgroundColor : GUIStyles.ErrorBackgroundColor;
+                    GUI.backgroundColor = HasAnimator() && HasAnimatorController() ? GUIStyles.DefaultBackgroundColor : GUIStyles.ErrorBackgroundColor;
                     {
                         EditorGUILayout.PropertyField(animator);
 
@@ -81,7 +79,7 @@ namespace Rowlan.AnimationPreview
                         EditorGUILayout.PropertyField(controller);
                         GUI.enabled = true;
 
-                        if (!hasAnimator || !hasAnimatorController)
+                        if (!HasAnimator() || !HasAnimatorController())
                         {
                             EditorGUILayout.HelpBox("The animator must have a controller. Use a gameobject with an attached Animator and Controller.", MessageType.Error);
                         }
@@ -90,7 +88,7 @@ namespace Rowlan.AnimationPreview
                     GUI.backgroundColor = GUIStyles.DefaultBackgroundColor;
 
 
-                    if (!hasAnimatorController)
+                    if (!HasAnimatorController())
                     {
                         EditorGUILayout.HelpBox("Quick solution to get a preview of all animations:\n1. Create > Animator Controller\n2. Drag all animations into the controller\n3. Add controller to your animator ", MessageType.Info);
                     }
@@ -103,7 +101,7 @@ namespace Rowlan.AnimationPreview
                     animatorChanged = true;
 
                     // update the controller
-                    editorTarget.controller = GetController();
+                    controller.objectReferenceValue = GetAnimatorController();
                 }
 
                 GUI.enabled = false;
@@ -162,9 +160,9 @@ namespace Rowlan.AnimationPreview
             {
                 EditorGUILayout.LabelField("Clip List", GUIStyles.BoxTitleStyle);
 
-                if (editorTarget.animator && GetController())
+                if (HasAnimator() && HasAnimatorController())
                 {
-                    AnimationClip[] clips = GetController().animationClips;
+                    AnimationClip[] clips = GetAnimatorController().animationClips;
                     for (int i = 0; i < clips.Length; i++)
                     {
                         AnimationClip clip = clips[i];
@@ -220,7 +218,7 @@ namespace Rowlan.AnimationPreview
 
                 // reset the 
                 // set index to either -1 or the first index depending on the number of animations
-                editorTarget.clipIndex = editorTarget.animator == null || GetController() == null || GetController().animationClips.Length == 0 ? -1 : 0;
+                editorTarget.clipIndex = !HasAnimator() || !HasAnimatorController() || GetAnimatorController().animationClips.Length == 0 ? -1 : 0;
 
                 UpdateClipName();
 
@@ -230,15 +228,47 @@ namespace Rowlan.AnimationPreview
         }
 
         /// <summary>
+        /// Check if an animator is available
+        /// </summary>
+        /// <returns></returns>
+        public bool HasAnimator()
+        {
+            return GetAnimator() != null;
+        }
+
+        /// <summary>
+        /// Check if an animator controller is available
+        /// </summary>
+        /// <returns></returns>
+        public bool HasAnimatorController()
+        {
+            return GetAnimatorController() != null;
+        }
+
+        /// <summary>
+        /// Get the animator
+        /// </summary>
+        /// <returns></returns>
+        public Animator GetAnimator()
+        {
+            if (animator == null)
+                return null;
+               
+            return animator.objectReferenceValue as Animator;
+        }
+
+        /// <summary>
         /// Wrapper method to get the controller from an animator without throwing an exception if the animator is null
         /// </summary>
         /// <returns></returns>
-        private RuntimeAnimatorController GetController()
+        private RuntimeAnimatorController GetAnimatorController()
         {
-            if (editorTarget.animator == null)
+            Animator animatorReference = GetAnimator();
+
+            if (animatorReference == null)
                 return null;
 
-            return editorTarget.animator.runtimeAnimatorController;
+            return animatorReference.runtimeAnimatorController;
         }
 
         #endregion Inspector
@@ -302,10 +332,10 @@ namespace Rowlan.AnimationPreview
 
         private int GetValidClipIndex( int clipIndex)
         {
-            if (!editorTarget.animator)
+            if (!HasAnimator())
                 return -1;
 
-            int clipCount = GetController().animationClips.Length;
+            int clipCount = GetAnimatorController().animationClips.Length;
 
             // check if there are clips at all
             if (clipCount == 0)
@@ -338,10 +368,10 @@ namespace Rowlan.AnimationPreview
 
         private AnimationClip GetClip( int clipIndex)
         {
-            if (!GetController())
+            if (!HasAnimatorController())
                 return null;
 
-            AnimationClip[] clips = GetController().animationClips;
+            AnimationClip[] clips = GetAnimatorController().animationClips;
 
             if (clipIndex >= clips.Length)
                 return null;
@@ -372,12 +402,15 @@ namespace Rowlan.AnimationPreview
             if (!previewClip)
                 return;
 
-            if (!editorTarget.animator)
+            if (!HasAnimator())
+                return;
+
+            if (!isPlaying)
                 return;
 
             previewClip.SampleAnimation(editorTarget.gameObject, Time.deltaTime);
             
-            editorTarget.animator.Update(Time.deltaTime);
+            GetAnimator().Update(Time.deltaTime);
         }
 
         private void ResetClip()
@@ -387,7 +420,7 @@ namespace Rowlan.AnimationPreview
 
             previewClip.SampleAnimation(editorTarget.gameObject, 0);
 
-            Animator animator = editorTarget.animator;
+            Animator animator = GetAnimator();
             animator.Play(previewClip.name, 0, 0f);
             animator.Update(0);
 
@@ -395,23 +428,23 @@ namespace Rowlan.AnimationPreview
 
         private void StopClip()
         {
-            ResetClip();
-            EditorApplication.update -= DoPreview;
-
             isPlaying = false;
 
+            EditorApplication.update -= DoPreview;
+
+            ResetClip();
         }
         #endregion Clip Control
 
         #region Logging
         private void LogClips()
         {
-            if (!editorTarget.animator || !GetController())
+            if (!HasAnimator() || !HasAnimatorController())
                 return;
 
-            AnimationClip[] clips = GetController().animationClips;
+            AnimationClip[] clips = GetAnimatorController().animationClips;
 
-            string text = "Clips of " + editorTarget.animator.name + ": " + clips.Length + "\n";
+            string text = "Clips of " + GetAnimator().name + ": " + clips.Length + "\n";
 
             for (int i = 0; i < clips.Length; i++)
             {
